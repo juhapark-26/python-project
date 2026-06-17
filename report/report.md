@@ -11,7 +11,19 @@ date: "2026-06-17"
 
 원본 전체 저장소와 UBFC-PHYS 원본 데이터는 제출 저장소에 포함하지 않았다. 분석 대상 원본 코드 발췌는 `src/before/`에, 개선 구현은 `src/after/`에 분리했다. 성능 비교는 개인정보성 원본 영상과 subject 경로를 공개하지 않기 위해 PhysNet 입력 형태에 맞춘 synthetic data로 수행했다.
 
-### 1.1 파이프라인 내 위치
+### 1.1 최적화 문제 정의와 해결 요약
+
+이번 작업은 변수명 변경, 주석 추가, 포맷팅, 입력 크기 축소처럼 실행 성능을 실제로 바꾸지 않는 작업을 제외하고 진행했다. `UBFC-PHYS_PHYSNET.yaml` 기준 입력 구조인 `128 x 128` frame과 `128` frame clip 설정을 유지했고, 모델 크기나 데이터 길이를 줄여서 빠르게 보이게 하지 않았다. 모든 개선은 원본 참조 구현과 결과 동등성을 먼저 확인한 뒤, 같은 synthetic 입력에서 before/after 시간을 비교했다.
+
+| 대상 | 문제 정의 | 적용 개념 | 해결 전략 | 비교 근거 |
+|---|---|---|---|---|
+| Negative Pearson loss | batch마다 Python loop로 sample별 Pearson 계산 | E. 딥러닝 tensor vectorization | batch 차원 전체를 tensor 연산으로 한 번에 계산 | `torch.allclose`, 평균/표준편차 시간 |
+| MACC | 모든 lag마다 `np.roll`과 `np.corrcoef` 반복 | A. 자료구조/복잡도 | FFT 기반 circular correlation으로 전체 lag 계산 | `np.allclose`, 시간 및 peak memory |
+| detrend | 같은 길이에서도 dense matrix inverse 반복 생성 | D. Decorator/caching | `lru_cache`로 projection matrix 재사용 | `np.allclose`, 시간 및 peak memory |
+
+따라서 본 보고서의 개선은 형식적 decorator 적용이나 단순 코드 정리가 아니라, 반복 호출되는 지배 연산을 줄이는 방향으로 설계했다.
+
+### 1.2 파이프라인 내 위치
 
 | 구분 | 역할 | 원본 코드 위치 |
 |---|---|---|
@@ -22,7 +34,7 @@ date: "2026-06-17"
 | 데이터 로딩/전처리 | `.npy` clip loading, face crop, normalization, chunking | `dataset/data_loader/BaseLoader.py`, `dataset/data_loader/UBFCPHYSLoader.py` |
 | 평가 | HR, SNR, MACC 등 평가 지표 계산 | `evaluation/metrics.py`, `evaluation/post_process.py` |
 
-### 1.2 입력과 출력
+### 1.3 입력과 출력
 
 `UBFC-PHYS_PHYSNET.yaml` 기준으로 PhysNet은 다음 구조의 데이터를 사용한다.
 
@@ -121,6 +133,8 @@ def _detrend(input_signal, lambda_value):
 `PhysnetTrainer`는 학습, 검증, 테스트, checkpoint 저장, metric 호출을 모두 담당한다. `BaseLoader` 역시 raw reading, crop, normalization, chunking, multiprocessing, file-list 생성, runtime loading을 한 클래스에서 수행한다. 이번 작업에서는 원본을 수정하지 않았지만, 단일책임원칙 관점에서는 분리 후보다.
 
 ## 3. 적용한 수업 개념
+
+아래 세 항목은 모두 benchmark 대상 코드에 직접 반영했다. B. Iterator/generator와 C. Class/SRP는 분석 후보로는 의미가 있었지만, 원본 pipeline 변경 범위가 커서 이번 실제 구현에는 포함하지 않았다.
 
 ### 3.1 E. 딥러닝 연구 코드 최적화
 
@@ -342,7 +356,7 @@ FFT MACC는 기존 lag 범위와 circular correlation 정의를 맞추도록 구
 
 둘째, CPU에서 측정했다. GPU 학습에서는 loss vectorization의 절대 시간과 상대 개선률이 달라질 수 있다. 다만 Python loop 제거 자체는 GPU에서도 의미가 있다.
 
-셋째, class/SRP나 generator streaming은 분석 후보로만 다루었다. 원본 pipeline 변경 범위를 최소화하기 위해 이번 구현에서는 A, D, E 세 항목에 집중했다.
+셋째, class/SRP나 generator streaming은 분석 후보로만 다루었다. 원본 pipeline 변경 범위를 최소화하기 위해 이번 구현에서는 A, D, E 세 항목에 집중했다. 이 선택은 수업 개념을 형식적으로 많이 나열하기보다, 실제 측정 가능한 개선 세 가지를 명확히 비교하기 위한 것이다.
 
 ## 7. 제출 저장소 구성
 
@@ -365,6 +379,7 @@ physnet-advanced-python-final/
 │   └── environment.json
 └── report/
     ├── report.md
+    ├── report.docx
     └── report.pdf
 ```
 

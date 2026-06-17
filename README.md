@@ -26,6 +26,7 @@ The `src/before/` folder contains the relevant original code excerpts, and
 │   └── environment.json
 └── report/
     ├── report.md
+    ├── report.docx
     └── report.pdf
 ```
 
@@ -54,5 +55,5 @@ Results are written to:
 
 ## Report
 
-The main report is in `report/report.md`; the submission PDF is
-`report/report.pdf`.
+The main report is in `report/report.md`; submission copies are
+`report/report.docx` and `report/report.pdf`.
