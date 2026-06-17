@@ -1,0 +1,13 @@
+{
+  "os": "Linux-5.15.0-139-generic-x86_64-with-glibc2.17",
+  "python": "3.8.20",
+  "numpy": "1.22.0",
+  "scipy": "1.5.2",
+  "torch": "2.1.2+cu121",
+  "device": "cpu",
+  "cuda_available": false,
+  "gpu_name": "",
+  "synthetic_video_shape_reference": "[B, 3, 128, 128, 128]",
+  "synthetic_label_shape_reference": "[B, 128]",
+  "seed": 100
+}
