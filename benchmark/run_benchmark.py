@@ -1,4 +1,4 @@
-"""Run synthetic before/after benchmarks for the PhysNet optimization report.
+"""Run before/after benchmarks for the PhysNet optimization report.
 
 This script does not read real UBFC-PHYS raw or cached data. It generates
 synthetic tensors/signals that match the PhysNet setting used in the report.
@@ -22,7 +22,7 @@ import torch
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src" / "after"))
 
-from physnet_safe_optimizations import (  # noqa: E402
+from physnet_optimizations import (  # noqa: E402
     VectorizedNegPearson,
     cached_detrend,
     fft_circular_macc,
@@ -233,4 +233,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

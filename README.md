@@ -1,11 +1,11 @@
-# PhysNet Advanced Python Final Project
+# PhysNet Optimization Benchmark
 
-This repository contains a safe, synthetic-data reproduction of optimization
-candidates for the rPPG-Toolbox PhysNet research pipeline.
+This repository contains before/after optimization code and benchmark results
+for selected bottlenecks in the rPPG-Toolbox PhysNet research pipeline.
 
-The original research repository and UBFC-PHYS data are not included. The
-`src/before/` folder contains the relevant original code excerpts, and
-`src/after/` contains isolated optimized implementations.
+The full original research repository and UBFC-PHYS dataset are not included.
+The `src/before/` folder contains the relevant original code excerpts, and
+`src/after/` contains optimized implementations used for comparison.
 
 ## Structure
 
@@ -18,7 +18,7 @@ The original research repository and UBFC-PHYS data are not included. The
 │   │   ├── PhysNetNegPearsonLoss_before.py
 │   │   └── post_process_before.py
 │   └── after/
-│       └── physnet_safe_optimizations.py
+│       └── physnet_optimizations.py
 ├── benchmark/
 │   └── run_benchmark.py
 ├── results/
@@ -26,8 +26,6 @@ The original research repository and UBFC-PHYS data are not included. The
 │   └── environment.json
 └── report/
     ├── report.md
-    ├── report.html
-    ├── report.docx
     └── report.pdf
 ```
 
@@ -56,6 +54,5 @@ Results are written to:
 
 ## Report
 
-The main report is in `report/report.md`. `report/report.docx` and
-`report/report.pdf` are generated copies for submission.
-
+The main report is in `report/report.md`; the submission PDF is
+`report/report.pdf`.

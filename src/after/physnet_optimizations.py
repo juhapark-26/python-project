@@ -1,8 +1,7 @@
-"""Isolated PhysNet optimization candidates for coursework benchmarks.
+"""PhysNet optimization implementations for before/after benchmarks.
 
-This module intentionally does not patch or import-mutate rPPG-Toolbox code.
-It provides drop-in-equivalent functions/classes that can be benchmarked with
-synthetic inputs before any original source changes are considered.
+This module provides equivalent functions/classes for the optimized variants
+measured in the benchmark script.
 """
 
 from functools import lru_cache
@@ -131,4 +130,3 @@ def original_macc_reference(pred_signal, gt_signal):
         cross_corr = np.abs(np.corrcoef(pred, np.roll(gt, lag))[0][1])
         tlcc_list.append(cross_corr)
     return max(tlcc_list)
-

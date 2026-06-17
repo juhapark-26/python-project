@@ -1,6 +1,5 @@
 ---
 title: "rPPG-Toolbox PhysNet 연구 코드 최적화 보고서"
-author: "고급파이썬프로그래밍 최종 과제"
 date: "2026-06-17"
 ---
 
@@ -10,7 +9,7 @@ date: "2026-06-17"
 
 본 보고서는 실제 연구 파이프라인에서 사용한 `rPPG-Toolbox`의 PhysNet 코드를 대상으로 한다. 기준 설정 파일은 `UBFC-PHYS_PHYSNET.yaml`이다. PhysNet은 얼굴 영상에서 원격 광용적맥파(remote photoplethysmography, rPPG)를 추정하는 딥러닝 모델이며, 입력 영상 clip으로부터 BVP/rPPG 시계열을 예측한 뒤 FFT 또는 peak detection 기반 심박 지표로 평가한다.
 
-본 과제에서는 원본 연구 코드와 실제 UBFC-PHYS 데이터셋을 직접 수정하거나 접근하지 않았다. 대신 원본 코드의 핵심 병목을 분석하고, 동일한 계산 구조를 재현한 독립 구현을 `advanced_python_physnet_safe/`에 작성했다. 성능 비교는 실제 데이터 대신 synthetic data로 수행했다. 이는 연구 데이터 경로와 개인정보성 subject 정보를 공개하지 않으면서도 최적화 전후를 비교할 수 있게 하기 위한 선택이다.
+원본 전체 저장소와 UBFC-PHYS 원본 데이터는 제출 저장소에 포함하지 않았다. 분석 대상 원본 코드 발췌는 `src/before/`에, 개선 구현은 `src/after/`에 분리했다. 성능 비교는 개인정보성 원본 영상과 subject 경로를 공개하지 않기 위해 PhysNet 입력 형태에 맞춘 synthetic data로 수행했다.
 
 ### 1.1 파이프라인 내 위치
 
@@ -141,11 +140,11 @@ Iterator/generator 기반 전처리 streaming과 class/SRP refactoring도 의미
 
 ## 4. 개선 과정
 
-개선 코드는 원본 파일을 수정하지 않고 아래 파일에 독립 구현했다.
+개선 코드는 아래 파일에 분리해 구현했다.
 
-- `advanced_python_physnet_safe/physnet_safe_optimizations.py`
-- `advanced_python_physnet_safe/benchmark_coursework.py`
-- `advanced_python_physnet_safe/results/benchmark_results.csv`
+- `src/after/physnet_optimizations.py`
+- `benchmark/run_benchmark.py`
+- `results/benchmark_results.csv`
 
 ### 4.1 Negative Pearson loss 개선
 
@@ -235,7 +234,7 @@ def cached_detrend(input_signal, lambda_value):
 
 | 대안 | 미적용 이유 |
 |---|---|
-| 원본 `PhysNetNegPearsonLoss.py` 직접 수정 | 원본 연구 코드 안전 보존 요구 |
+| 원본 `PhysNetNegPearsonLoss.py` 직접 수정 | 원본 연구 코드 보존 및 비교 가능성 유지 |
 | `PhysnetTrainer` class 분리 | 원본 학습 파이프라인 전반에 영향 |
 | `BaseLoader.chunk` generator streaming | raw preprocessing과 파일 저장 정책에 영향 |
 | 실제 UBFC-PHYS 데이터 benchmark | 민감 경로와 데이터 접근 금지 조건 |
@@ -245,7 +244,7 @@ def cached_detrend(input_signal, lambda_value):
 
 ### 5.1 측정 조건
 
-측정은 `advanced_python_physnet_safe/benchmark_coursework.py`로 수행했다.
+측정은 `benchmark/run_benchmark.py`로 수행했다.
 
 | 항목 | 값 |
 |---|---|
@@ -335,7 +334,7 @@ FFT MACC는 기존 lag 범위와 circular correlation 정의를 맞추도록 구
 
 `lru_cache`는 memory를 사용해 시간을 줄인다. 본 구현에서는 `maxsize=32`로 제한하여 cache가 무한히 커지지 않게 했다. 하지만 매우 다양한 window length를 처리하는 데이터셋에서는 cache hit가 낮아질 수 있다.
 
-독립 구현은 원본 코드의 안전성을 보장하지만, 실제 end-to-end pipeline에 바로 반영된 것은 아니다. GitHub 제출 단계에서는 `src/before`, `src/after` 또는 commit history로 전후 비교가 명확히 보이도록 구성해야 한다.
+본 구현은 원본 발췌 코드와 개선 코드를 `src/before`, `src/after`로 분리해 전후 비교가 가능하게 구성했다. 다만 rPPG-Toolbox의 전체 end-to-end 학습 파이프라인에 직접 통합한 결과는 아니므로, 전체 학습 시간 개선률은 별도로 주장하지 않는다.
 
 ### 6.4 한계
 
@@ -343,11 +342,11 @@ FFT MACC는 기존 lag 범위와 circular correlation 정의를 맞추도록 구
 
 둘째, CPU에서 측정했다. GPU 학습에서는 loss vectorization의 절대 시간과 상대 개선률이 달라질 수 있다. 다만 Python loop 제거 자체는 GPU에서도 의미가 있다.
 
-셋째, class/SRP나 generator streaming은 분석 후보로만 다루었다. 원본 pipeline 안전성을 우선했기 때문에 이번 구현에서는 A, D, E 세 항목에 집중했다.
+셋째, class/SRP나 generator streaming은 분석 후보로만 다루었다. 원본 pipeline 변경 범위를 최소화하기 위해 이번 구현에서는 A, D, E 세 항목에 집중했다.
 
-## 7. GitHub 제출 구성 제안
+## 7. 제출 저장소 구성
 
-GitHub 업로드 시에는 다음 구조를 권장한다.
+제출 저장소는 다음 구조로 구성했다.
 
 ```text
 physnet-advanced-python-final/
@@ -358,7 +357,7 @@ physnet-advanced-python-final/
 │   │   ├── PhysNetNegPearsonLoss_before.py
 │   │   └── post_process_before.py
 │   └── after/
-│       └── physnet_safe_optimizations.py
+│       └── physnet_optimizations.py
 ├── benchmark/
 │   └── run_benchmark.py
 ├── results/
@@ -369,10 +368,10 @@ physnet-advanced-python-final/
     └── report.pdf
 ```
 
-현재 서버 작업물에서는 원본을 보존하기 위해 `advanced_python_physnet_safe/` 안에 독립 구현을 두었다. GitHub 제출용 저장소에서는 원본 코드의 핵심 부분을 `src/before/`에 민감 경로 없이 복사하고, 개선 구현을 `src/after/`에 두면 과제 지시사항의 “최적화 전후 비교 가능성”을 더 명확히 충족할 수 있다.
+`src/before/`에는 원본 코드의 핵심 발췌본을 두었고, `src/after/`에는 개선 구현을 두었다. benchmark와 결과 파일을 함께 포함해 최적화 전후 비교와 재측정이 가능하도록 했다.
 
 ## 8. 결론
 
 본 과제는 PhysNet 연구 코드에서 반복적으로 호출되는 손실 함수와 평가 함수를 분석하고, 수업에서 배운 자료구조/복잡도, decorator caching, 딥러닝 tensor vectorization 개념을 적용했다. 세 개선 모두 동일 synthetic 입력에서 원본 참조 구현과 결과 동등성을 확인했고, 10회 반복 benchmark로 평균, 표준편차, peak memory를 기록했다.
 
-가장 큰 개선은 evaluation 단계의 detrend와 MACC에서 나타났다. 이는 단순한 코드 정리가 아니라 지배 연산과 중복 계산을 직접 줄였기 때문이다. 학습 단계에서는 negative Pearson loss vectorization이 batch size 증가에 따라 큰 효과를 보였다. 실제 데이터와 원본 코드를 건드리지 않는 안전한 방식으로 진행했기 때문에, 다음 단계에서는 이 구조를 GitHub 제출용 `before/after` 폴더와 PDF 보고서로 정리하면 된다.
+가장 큰 개선은 evaluation 단계의 detrend와 MACC에서 나타났다. 이는 단순한 코드 정리가 아니라 지배 연산과 중복 계산을 직접 줄였기 때문이다. 학습 단계에서는 negative Pearson loss vectorization이 batch size 증가에 따라 큰 효과를 보였다. 제출 저장소는 원본 발췌 코드, 개선 코드, benchmark script, 측정 결과, PDF 보고서를 함께 포함하도록 구성했다.
