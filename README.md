@@ -21,13 +21,9 @@ The `src/before/` folder contains the relevant original code excerpts, and
 │       └── physnet_optimizations.py
 ├── benchmark/
 │   └── run_benchmark.py
-├── results/
-│   ├── benchmark_results.csv
-│   └── environment.json
-└── report/
-    ├── report.md
-    ├── report.docx
-    └── report.pdf
+└── results/
+    ├── benchmark_results.csv
+    └── environment.json
 ```
 
 ## Optimization Topics
@@ -55,5 +51,5 @@ Results are written to:
 
 ## Report
 
-The main report is in `report/report.md`; submission copies are
-`report/report.docx` and `report/report.pdf`.
+The written report is submitted separately and is not tracked in this GitHub
+repository.
